@@ -1,53 +1,99 @@
 const mongoose = require('mongoose');
 
-mongoose.connect('mongodb://localhost/samplebookdb');
-
+// schema for the book
 const bookSchema = new mongoose.Schema({
-  title: String,
-  author: String,
-  year: Number,
+  title: {type: String, required: true},
+  author: {type: String, required: true},
+  year: {type: Number, required: true},
 });
 
+// Create the model for the book
 const Book = mongoose.model('Book', bookSchema);
 
-async function performOperations() {
-  // Create 4 books
-  const books = [
-    {title: 'Book 1', author: 'Author 1', year: 2001},
-    {title: 'Book 2', author: 'Author 2', year: 2002},
-    {title: 'Book 3', author: 'Author 3', year: 2003},
-    {title: 'Book 4', author: 'Author 4', year: 2004},
-  ];
-  await Book.insertMany(books);
-
-  // Display all books
-  let allBooks = await Book.find();
-  console.log('All Books:\n', allBooks);
-
-  // Delete one book
-  await Book.deleteOne({title: 'Book 1'});
-
-  // Display all books
-  allBooks = await Book.find();
-  console.log('After deleting one book:\n', allBooks);
-
-  // Insert one book
-  const newBook = new Book({title: 'Book 5', author: 'Author 5', year: 2005});
-  await newBook.save();
-
-  // Display all books
-  allBooks = await Book.find();
-  console.log('Inserting new book:\n', allBooks);
-
-  // Update one book
-  await Book.updateOne({title: 'Book 2'}, {year: 2024});
-
-  // Display all books
-  allBooks = await Book.find();
-  console.log('After updating the year of book 2:\n', allBooks);
-
-  // Close mongoose connection
-  mongoose.connection.close();
+// Connect to the database
+async function connectToDatabase(uri) {
+  try {
+    await mongoose.connect(uri);
+    return true;
+  } catch (error) {
+    return false;
+  }
 }
 
-performOperations();
+// Drop the database
+async function dropDatabase() {
+  if (mongoose.connection.readyState != 1) {
+    return false;
+  }
+  await mongoose.connection.dropDatabase();
+  return true;
+}
+
+// Insertmultiple books
+async function insertBooks(books) {
+  try {
+    await Book.insertMany(books);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Display all books
+async function displayBooks() {
+  try {
+    const allBooks = await Book.find();
+    return allBooks;
+  } catch (error) {
+    return [];
+  }
+}
+
+// Delete a book
+async function deleteBook(title) {
+  try {
+    await Book.deleteOne({title});
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Insert a book
+async function insertBook(book) {
+  const newBook = new Book(book);
+  try {
+    await newBook.save(); // Save the document immediately
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Update a book
+async function updateBook(title, data) {
+  try {
+    await Book.findOneAndUpdate({title}, data);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+// Close mongoose connection
+async function closeConnection() {
+  await mongoose.connection.close();
+  return true;
+}
+
+module.exports = {
+  connectToDatabase,
+  dropDatabase,
+  insertBooks,
+  displayBooks,
+  deleteBook,
+  insertBook,
+  updateBook,
+  closeConnection,
+  Book,
+};
