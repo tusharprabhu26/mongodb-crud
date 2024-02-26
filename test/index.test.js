@@ -19,10 +19,22 @@ describe('Database Operations', function() {
   this.timeout(5000); // 5 seconds timeout
   let uri;
 
-  before(async function() {
+  beforeEach(async function() {
     console.log('Starting MongoDB instance...');
     await mongod.start();
     uri = await mongod.getUri();
+    const isConnected = await connectToDatabase(uri);
+    expect(isConnected).to.equal(true);
+    console.log('Dropping database...');
+    await dropDatabase();
+    console.log('Database dropped successfully');
+  });
+
+  afterEach(async function() {
+    console.log('Closing connection...');
+    await closeConnection();
+    console.log('Connection closed successfully');
+    await mongod.stop();
   });
 
   it('should connect to database', async function() {
@@ -47,6 +59,13 @@ describe('Database Operations', function() {
   });
 
   it('should display all books', async function() {
+    const books = [
+      {title: 'Book 1', author: 'Author 1', year: 2001},
+      {title: 'Book 2', author: 'Author 2', year: 2002},
+      {title: 'Book 3', author: 'Author 3', year: 2003},
+      {title: 'Book 4', author: 'Author 4', year: 2004},
+    ];
+    await insertBooks(books);
     const allBooks = await displayBooks();
     expect(allBooks.length).to.equal(4);
   });
@@ -145,12 +164,5 @@ describe('Database Operations', function() {
   it('should close the connection', async function() {
     const isClosed = await closeConnection();
     expect(isClosed).to.equal(true);
-  });
-
-  after(async function() {
-    console.log('Closing connection...');
-    await closeConnection();
-    console.log('Connection closed successfully');
-    await mongod.stop();
   });
 });
