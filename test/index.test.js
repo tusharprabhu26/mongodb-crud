@@ -15,9 +15,29 @@ const {
 const expect = chai.expect;
 const mongod = new MongoMemoryServer();
 
+async function testInsertBook(book, shouldInsert) {
+  const isInserted = await insertBook(book);
+  expect(isInserted).to.equal(shouldInsert);
+
+  if (shouldInsert) {
+    // check that the inserted book has all the necessary fields
+    const insertedBook = await Book.findOne({title: book.title});
+    expect(insertedBook).to.have.property('title');
+    expect(insertedBook).to.have.property('author');
+    expect(insertedBook).to.have.property('year');
+  }
+}
+
 describe('Database Operations', function() {
   this.timeout(5000); // 5 seconds timeout
   let uri;
+
+  const books = [
+    {title: 'Book 1', author: 'Author 1', year: 2001},
+    {title: 'Book 2', author: 'Author 2', year: 2002},
+    {title: 'Book 3', author: 'Author 3', year: 2003},
+    {title: 'Book 4', author: 'Author 4', year: 2004},
+  ];
 
   beforeEach(async function() {
     console.log('Starting MongoDB instance...');
@@ -48,23 +68,11 @@ describe('Database Operations', function() {
   });
 
   it('should insert books', async function() {
-    const books = [
-      {title: 'Book 1', author: 'Author 1', year: 2001},
-      {title: 'Book 2', author: 'Author 2', year: 2002},
-      {title: 'Book 3', author: 'Author 3', year: 2003},
-      {title: 'Book 4', author: 'Author 4', year: 2004},
-    ];
     const areInserted = await insertBooks(books);
     expect(areInserted).to.equal(true);
   });
 
   it('should display all books', async function() {
-    const books = [
-      {title: 'Book 1', author: 'Author 1', year: 2001},
-      {title: 'Book 2', author: 'Author 2', year: 2002},
-      {title: 'Book 3', author: 'Author 3', year: 2003},
-      {title: 'Book 4', author: 'Author 4', year: 2004},
-    ];
     await insertBooks(books);
     const allBooks = await displayBooks();
     expect(allBooks.length).to.equal(4);
@@ -77,26 +85,17 @@ describe('Database Operations', function() {
 
   it('should insert a book with all fields', async function() {
     const newBook = {title: 'Book 5', author: 'Author 5', year: 2005};
-    const isInserted = await insertBook(newBook);
-    expect(isInserted).to.equal(true);
-
-    // check that the inserted book has all the necessary fields
-    const insertedBook = await Book.findOne({title: 'Book 5'});
-    expect(insertedBook).to.have.property('title');
-    expect(insertedBook).to.have.property('author');
-    expect(insertedBook).to.have.property('year');
+    await testInsertBook(newBook, true);
   });
 
   it('should not insert a book with missing fields', async function() {
     const incompleteBook = {title: 'Book 6', year: 2006};
-    const isInserted = await insertBook(incompleteBook);
-    expect(isInserted).to.equal(false);
+    await testInsertBook(incompleteBook, false);
   });
 
   it('should not insert a book without a title', async function() {
     const noTitleBook = {author: 'Author 7', year: 2007};
-    const isInserted = await insertBook(noTitleBook);
-    expect(isInserted).to.equal(false);
+    await testInsertBook(noTitleBook, false);
   });
 
   it('should update a book', async function() {
@@ -106,8 +105,7 @@ describe('Database Operations', function() {
 
   it('should not insert a book without a year', async function() {
     const noYearBook = {title: 'Book 7', author: 'Author 7'};
-    const isInserted = await insertBook(noYearBook);
-    expect(isInserted).to.equal(false);
+    await testInsertBook(noYearBook, false);
   });
 
   it('should have the correct model name', function() {
